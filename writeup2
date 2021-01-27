@@ -1,0 +1,27 @@
+Pour ce deuxieme writeup, nous reprendrons depuis le passage sur le terminal
+de la VM. En arrivant sur la vm, on va dans un premier temps checker la version
+du kernel linux avec la commande:
+uname -r
+
+Grace au resultat (3.2.0-91-generic-pae), on peut maintenant aller voir sur internet
+s'il existe un CVE correspondant à cette version de kernel qui permettrait de
+faire une escalation de privilege.
+En cherchant quelques minutes, on tombe sur un programme appelé dirty_cow qui
+permet de modifier le fichier /etc/passwd pour obtenir les droits de root.
+Cet exploit fonctionne sur les versions anterieur a 3.9 ce qui est le cas du
+notre.
+Lien du programme:
+https://www.exploit-db.com/exploits/40839
+
+Desormais, il ne suffit plus que de compiler le programme comme indiquer dans la
+source puis de l'executer. apres quelques secondes, l'utilisateur firefart
+est créé avec le mot de passe indiquer en argument du programme. On peut ensuite
+se connecter avec ce nouveau user qui a les droits root.
+
+-------
+
+Pour devenir reellement root, il suffit ensuite quand on est en tant que firefart
+de retablir l'ancien /etc/passwd et de faire la commande:
+su root
+
+Et nous voila root

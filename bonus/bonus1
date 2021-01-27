@@ -1,0 +1,8 @@
+Pour ce deuxieme writeup, nous allons voir comment devenir prendre le controle
+du compte admin sur mylittleforum.
+Une fois l'accès à la bdd, il est possible de voir la table des users. Dans
+cette table, on peut y voir les mots de passes encryptés. On peut aussi les changer
+et étant donné que l'on connait le mot de passe du compte lmezard, on peut simplement
+modifier le hash du password du compte admin par celui du user lmezard et ainsi,
+le mdp de l'admin devient celui de lmezard. Ensuite on a le controle total du site
+et de la base de donné.

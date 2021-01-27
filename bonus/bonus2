@@ -1,0 +1,9 @@
+Pour le bonus2, simplement, une meilleure diffusion de la bombe est possible.
+Bien que le resultat de cette nouvelle solution n'est pas le mot de passe d'une
+user de la vm, il reste pour le moins interessant de se pencher sur la partie
+reverse engeneering du challenge.
+Lors de la diffusion de la bombe, on se rend compte qu'il existe une phase secrete
+qu'il est possible d'activer en rentrant austinpowers derriere la reponse de la
+phase numero 4. Ensuite la phase se présentera d'elle meme, et avec un peu plus
+de reversing, on trouve que la reponse 1001 defuse cette derniere phase de la
+bombe.
